@@ -1,4 +1,4 @@
-# Lab 05 — Lưu, truy vấn và thống kê đăng ký với postgresql
+# Lab 05 — Lưu, truy vấn và thống kê đăng ký với MySQL/MariaDB
 
 Mã mẫu cho phần hướng dẫn và mã khởi đầu cho bài tự làm.
 
@@ -6,14 +6,42 @@ Mã mẫu cho phần hướng dẫn và mã khởi đầu cho bài tự làm.
 
 Mở terminal Ubuntu/WSL tại thư mục chứa `lab.sh`. Dùng PHP từ 8.1 và Git. Hướng dẫn chi tiết, sơ đồ, đoạn mã cần sửa, dữ liệu đối chiếu và rubric nằm trong tài liệu của bài lab.
 
+Lab05 dùng MySQL/MariaDB và phần mở rộng `mysqli`. Cài gói `php8.5-mysql` khớp với `php -v` (máy thực hành đang dùng PHP 8.5); kiểm tra bằng `php -m | grep mysqli`. Tạo CSDL lab riêng, không dùng CSDL production và không xóa CSDL có sẵn.
+
+Tại thư mục này, chạy lần lượt:
+
 ```bash
+bash lab.sh db-config
 bash lab.sh check
+bash lab.sh sql
+```
+
+Khi `db-config` hỏi, nhấn Enter để dùng máy chủ `127.0.0.1`, cổng `3306`, CSDL và tài khoản `communitypass_lab_v5`, hoặc nhập thông tin được cấp. Mật khẩu không hiện khi gõ. Công cụ chỉ lưu cấu hình sau khi kết nối thành công vào `.local/db.json` với quyền `0600`; không commit hoặc nộp thư mục `.local`.
+
+Trong phiên SQL vừa mở, nạp schema rồi kiểm tra:
+
+```sql
+source database/schema.sql
+SELECT id, title FROM events ORDER BY id;
+quit
+```
+
+`source` và `\i` là lệnh của công cụ, không phải câu SQL, nên không thêm dấu `;` sau đường dẫn tệp. Có thể dùng `\i database/schema.sql` thay cho `source database/schema.sql`. Nếu gõ `source database/schema.sql;`, công cụ coi dấu `;` là một phần tên tệp và báo `Khong doc duoc tep`; bỏ dấu `;` rồi thử lại. Cần có 3 sự kiện mẫu.
+
+Sau đó chạy Web:
+
+```bash
 bash lab.sh run
 ```
 
 Mở http://127.0.0.1:8105. Giữ terminal máy chủ hoạt động; dùng terminal thứ hai để kiểm thử. Nhấn Ctrl+C để dừng.
 
-Lab05 cần PostgreSQL và pgsql. Thực hiện mục Chuẩn bị riêng cho Lab 05, chạy `bash lab.sh db-config`, kiểm tra kết nối và tạo schema trước khi chạy Web hoặc test.
+## Tệp và nhiệm vụ
+
+- Sinh viên hoàn thiện `src/RegistrationStats.php`: viết truy vấn thống kê theo sự kiện bằng `LEFT JOIN`; sự kiện chưa có đăng ký trả `total=0`, ID không tồn tại trả mảng rỗng.
+- Phần mẫu có hướng dẫn: `src/Database.php`, `src/RegistrationRepository.php`, `database/schema.sql`, `demo-db.php`, `public/complete.php`.
+
+Giữ cấu trúc bảng và ràng buộc duy nhất `(event_id, email)` trong `database/schema.sql`. Truy vấn phải dùng tham số `?`, không ghép ID hoặc dữ liệu người dùng trực tiếp vào SQL.
 
 ## Kiểm tra bài
 
@@ -22,9 +50,17 @@ bash lab.sh test
 bash lab.sh extend
 ```
 
-`test` kiểm tra phần mẫu; `extend` kiểm tra phần tự làm. Các vị trí TODO là nhiệm vụ cần hoàn thiện; không sửa test để bỏ qua lỗi.
+`test` kiểm tra phần mẫu, gồm `tests/run.php` và `tests/integration.php`: kỳ vọng `TESTS=6 FAILED=0` và `TESTS=7 FAILED=0`. `extend` kiểm tra phần tự làm: kỳ vọng `TESTS=4 FAILED=0`. Các vị trí TODO là nhiệm vụ cần hoàn thiện; không sửa test để bỏ qua lỗi.
+
+`bash lab.sh check` chỉ kiểm tra môi trường. Nếu kết quả có `NOT_RUN`, kiểm thử chưa thực thi do thiếu kết nối hoặc cấu hình; không coi đó là PASS.
 
 Kết quả mở rộng cần đạt: `TESTS=4 FAILED=0`. Có luồng Form lưu đăng ký thật, chống trùng theo sự kiện–email, tra cứu danh sách và thống kê cả sự kiện chưa có người đăng ký.
+
+## Khác biệt với đề bài gốc (PostgreSQL)
+
+Bộ kiểm thử trong `tests/` của đề bài gốc dùng dialect PostgreSQL (`pg_query`, tham số `$1..$n`). Vì mã nguồn chạy trên MySQL/MariaDB, các tệp kiểm thử đã được đổi **duy nhất cú pháp** sang `mysqli` (`mysqli_query`, tham số `?`); toàn bộ khẳng định `same(...)` và giá trị kỳ vọng giữ nguyên tuyệt đối, không có khẳng định nào bị nới lỏng, xóa hay thêm. Số ca kiểm thử vẫn là: `tests/run.php` = 6, `tests/integration.php` = 7, `tests/extension.php` = 4. Việc đổi cú pháp không nhằm bỏ qua lỗi: `NOT_RUN` vẫn là `NOT_RUN`, và một lần sửa lỗi trong mã ứng dụng vẫn phải làm `FAILED` tăng.
+
+Các tệp nằm trong danh sách "bạn đọc và sửa" của đề bài: `src/Database.php`, `src/RegistrationRepository.php`, `database/schema.sql`, `demo-db.php`, `public/complete.php`; tệp bài tự làm: `src/RegistrationStats.php`.
 
 ## Tệp nộp
 

@@ -2,13 +2,12 @@
 require __DIR__.'/helper.php';
 require __DIR__.'/../src/RegistrationRepository.php';
 try { $connection = db(); }
-catch (Throwable $e) { fwrite(STDERR,"NOT_RUN: PostgreSQL unavailable or unconfigured\n"); exit(2); }
-// All test data is inserted in a transaction, then rolled back.
-if (!pg_query($connection,'BEGIN')) { exit(2); }
+catch (Throwable $e) { fwrite(STDERR,"NOT_RUN: MySQL unavailable or unconfigured\n"); exit(2); }
+if (!mysqli_query($connection,'BEGIN')) { exit(2); }
 try {
     $eventId = 100000000 + random_int(1,100000000);
     queryParams($connection,
-        'INSERT INTO events(id,title,category,capacity) VALUES ($1,$2,$3,$4)',
+        'INSERT INTO events(id,title,category,capacity) VALUES (?,?,?,?)',
         [$eventId,'Integration fixture','test',5]);
     $repo = new RegistrationRepository($connection);
     same($repo->save($eventId,"O'Neil",'A@example.test'),'CREATED','create');
@@ -20,5 +19,5 @@ try {
     same($repo->listForEvent(-1),[],'empty-event');
 } catch (Throwable $e) {
     $failed++; echo 'FAIL integration: ' . $e->getMessage() . "\n";
-} finally { pg_query($connection,'ROLLBACK'); }
+} finally { mysqli_query($connection,'ROLLBACK'); }
 finish();

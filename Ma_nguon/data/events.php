@@ -8,7 +8,7 @@ try {
          GROUP BY e.id,e.title,e.category,e.capacity ORDER BY e.id',
         []
     );
-    $rows = pg_fetch_all($result) ?: [];
+    $rows = mysqli_fetch_all($result, MYSQLI_ASSOC) ?: [];
     return array_map(static function (array $row): array {
         $row['id'] = (int)$row['id'];
         $row['capacity'] = (int)$row['capacity'];
